@@ -30,7 +30,8 @@
             </div>
         </div>
     @else
-        <div style="display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start">
+        <div class="grid-2col-r">
+
             {{-- Item List --}}
             <div class="card">
                 <div class="card-head">
@@ -39,6 +40,7 @@
                 </div>
                 <div class="card-body">
                     @foreach($cart as $id => $item)
+                        @php $stok = $item['stok'] ?? 9999; @endphp
                         <div class="ci">
                             <div class="ci-info">
                                 <p class="ci-name">{{ $item['nama_barang'] }}</p>
@@ -48,19 +50,25 @@
                             {{-- Qty Update --}}
                             <form action="{{ route('user.cart.update', $id) }}" method="POST" class="ci-qty">
                                 @csrf @method('PUT')
+
                                 <button type="button" class="qb" onclick="stepQty(this, -1)">−</button>
+
                                 <input type="number" name="kuantitas" class="qv fc"
-                                    style="width:44px;height:28px;text-align:center;padding:0 4px;font-weight:700;font-size:13px"
-                                    value="{{ $item['kuantitas'] }}" min="1" onchange="this.form.submit()">
+                                    style="width:44px;height:28px;text-align:center;padding:0 4px;font-weight:700;font-size:13px;-moz-appearance:textfield;appearance:textfield"
+                                    value="{{ $item['kuantitas'] }}" min="1" max="{{ $stok }}" onchange="submitQty(this)"
+                                    onwheel="this.blur()">
+
                                 <button type="button" class="qb" onclick="stepQty(this, 1)">+</button>
                             </form>
 
                             <p class="ci-price">Rp {{ number_format($item['subtotal'], 0, ',', '.') }}</p>
 
-                            <form action="{{ route('user.cart.remove', $id) }}" method="POST"
-                                onsubmit="return confirm('Hapus dari keranjang?')">
+                            <form id="form-hapus-{{ $id }}" action="{{ route('user.cart.remove', $id) }}" method="POST">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="ci-del" title="Hapus">×</button>
+                                <button type="button" class="ci-del" title="Hapus"
+                                    onclick="konfirmasi('form-hapus-{{ $id }}', 'Hapus \'{{ $item['nama_barang'] }}\' dari keranjang?')">
+                                    ×
+                                </button>
                             </form>
                         </div>
                     @endforeach
@@ -106,13 +114,59 @@
     @endif
 
 @endsection
+
 @section('scripts')
     <script>
-        function stepQty(btn, delta) {
-            const form = btn.closest('form');
-            const input = form.querySelector('input[name=kuantitas]');
-            const val = parseInt(input.value) + delta;
-            if (val >= 1) { input.value = val; form.submit(); }
+        function syncBtns(form) {
+            const input = form.querySelector('input[name="kuantitas"]');
+            const [bMin, bPlus] = form.querySelectorAll('button.qb');
+            const val = parseInt(input.value);
+            const max = parseInt(input.max) || Infinity;
+
+            const setBtn = (btn, disabled) => {
+                btn.disabled = disabled;
+                btn.style.opacity = disabled ? '.35' : '1';
+                btn.style.cursor = disabled ? 'not-allowed' : 'pointer';
+            };
+
+            setBtn(bMin, val <= 1);
+            setBtn(bPlus, val >= max);
         }
+
+        function stepQty(btn, delta) {
+            if (btn.disabled) return;
+
+            const form = btn.closest('form');
+            const input = form.querySelector('input[name="kuantitas"]');
+            const max = parseInt(input.max) || Infinity;
+            const prev = parseInt(input.value) || 1;
+            const next = Math.min(Math.max(1, prev + delta), max);
+
+            if (next === prev) return;
+            input.value = next;
+            syncBtns(form);
+            form.submit();
+        }
+
+        function submitQty(input) {
+            const form = input.closest('form');
+            const max = parseInt(input.max) || Infinity;
+            let val = parseInt(input.value);
+
+            if (isNaN(val) || val < 1) val = 1;
+            if (val > max) val = max;
+            input.value = val;
+
+            syncBtns(form);
+            form.submit();
+        }
+
+        function konfirmasi(formId, pesan) {
+            if (confirm(pesan)) document.getElementById(formId).submit();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('form.ci-qty').forEach(syncBtns);
+        });
     </script>
 @endsection

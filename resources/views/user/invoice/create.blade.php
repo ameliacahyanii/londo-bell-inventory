@@ -15,7 +15,7 @@
         </a>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start">
+    <div class="grid-2col-r">
         {{-- Form --}}
         <div class="card">
             <div class="card-head"><span>Data Pengiriman</span></div>

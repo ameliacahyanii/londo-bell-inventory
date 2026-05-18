@@ -5,7 +5,7 @@
     <div class="ph">
         <div>
             <h1>Dashboard</h1>
-            <p>Selamat datang, {{ auth()->user()->nama_lengkap }} — {{ now()->translatedFormat('l, d F Y') }}</p>
+            <p>Selamat datang, {{ auth()->user()->nama_lengkap }} - {{ now()->translatedFormat('l, d F Y') }}</p>
         </div>
     </div>
 

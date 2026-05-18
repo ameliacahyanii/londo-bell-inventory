@@ -22,7 +22,7 @@
                         placeholder="Contoh: Elektronik..." value="{{ old('nama_kategori') }}" required>
                     @error('nama_kategori')<p class="err-msg">{{ $message }}</p>@enderror
                 </div>
-                <button type="submit" class="btn btn-p" style="flex-shrink:0">
+                <button type="submit" class="btn btn-p" style="flex-shrink:0;margin-bottom:4px">
                     <i class="bi bi-plus-lg"></i> Tambah
                 </button>
             </form>

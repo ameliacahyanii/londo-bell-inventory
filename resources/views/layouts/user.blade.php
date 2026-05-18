@@ -14,6 +14,28 @@
 </head>
 
 <body>
+    {{-- Toast Container --}}
+    <div id="toast-wrap"
+        style="position:fixed;top:20px;right:20px;display:flex;flex-direction:column;gap:10px;z-index:9999;pointer-events:none">
+    </div>
+
+    {{-- Modal Konfirmasi --}}
+    <div id="modal-konfirmasi"
+        style="display:none;position:fixed;inset:0;z-index:9998;align-items:center;justify-content:center">
+        <div class="mk-backdrop" onclick="tutupKonfirmasi()"></div>
+        <div class="mk-box">
+            <div class="mk-icon-wrap">
+                <i class="bi bi-trash3"></i>
+            </div>
+            <h3 class="mk-title">Hapus data ini?</h3>
+            <p id="mk-pesan" class="mk-pesan">Tindakan ini tidak bisa dibatalkan.</p>
+            <div class="mk-actions">
+                <button onclick="tutupKonfirmasi()" class="mk-btn-batal">Batal</button>
+                <button id="mk-btn-hapus" class="mk-btn-hapus">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
     {{-- Topbar User --}}
     <nav class="unav">
         <div class="unav-brand">
@@ -32,8 +54,8 @@
                 <i class="bi bi-grid"></i>
                 <span class="nav-link-txt">Katalog</span>
             </a>
-            <a href="{{ route('user.faktur.create') }}"
-                class="nav-link {{ request()->routeIs('user.faktur.create') ? 'on' : '' }}">
+            <a href="{{ route('user.faktur.index') }}"
+                class="nav-link {{ request()->routeIs('user.faktur.index') ? 'on' : '' }}">
                 <i class="bi bi-cart3"></i>
                 <span class="nav-link-txt">Keranjang</span>
                 @php $cartCount = count(session('cart', [])); @endphp
@@ -66,24 +88,88 @@
     {{-- Content --}}
     <div class="user-wrap">
         <div class="ucontent">
-            @if(session('success'))
-                <div class="al al-s">
-                    <i class="bi bi-check-circle"></i>
-                    <span>{{ session('success') }}</span>
-                    <button class="al-x" onclick="this.parentElement.remove()">×</button>
-                </div>
-            @endif
-            @if(session('error'))
-                <div class="al al-d">
-                    <i class="bi bi-exclamation-circle"></i>
-                    <span>{{ session('error') }}</span>
-                    <button class="al-x" onclick="this.parentElement.remove()">×</button>
-                </div>
-            @endif
-
             @yield('content')
         </div>
     </div>
+
+    {{-- Toast Trigger Session --}}
+    @if(session('success'))
+        <script>
+            document.addEventListener('DOMContentLoaded', () =>
+                showToast('success', 'Berhasil!', '{{ session('success') }}')
+            );
+        </script>
+    @endif
+    @if(session('error'))
+        <script>
+            document.addEventListener('DOMContentLoaded', () =>
+                showToast('danger', 'Gagal!', '{{ session('error') }}')
+            );
+        </script>
+    @endif
+
+    @yield('scripts')
+    <script>
+        /* Toast */
+        function showToast(type, title, msg, dur = 4000) {
+            const wrap = document.getElementById('toast-wrap');
+            const t = document.createElement('div');
+            t.className = 'toast';
+            const cls = type === 'success' ? 's' : type === 'danger' ? 'd' : 'i';
+            const icon = type === 'success' ? '<i class="bi bi-check-lg"></i>'
+                : type === 'danger' ? '<i class="bi bi-exclamation-circle"></i>'
+                    : '<i class="bi bi-info-circle"></i>';
+            t.innerHTML = `
+                <div class="toast-icon ${cls}">${icon}</div>
+                <div class="toast-body">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-msg">${msg}</div>
+                </div>
+                <button class="toast-x" onclick="dismissToast(this.closest('.toast'))">×</button>
+                <div class="toast-progress"><div class="toast-bar ${cls}" style="width:100%"></div></div>
+            `;
+            wrap.appendChild(t);
+            requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('in')));
+            const bar = t.querySelector('.toast-bar');
+            bar.style.transition = `width ${dur}ms linear`;
+            requestAnimationFrame(() => requestAnimationFrame(() => bar.style.width = '0%'));
+            t._timer = setTimeout(() => dismissToast(t), dur);
+        }
+
+        function dismissToast(t) {
+            clearTimeout(t._timer);
+            t.classList.add('out');
+            t.addEventListener('transitionend', () => t.remove(), { once: true });
+        }
+
+        /* Modal Konfirmasi */
+        let _formKonfirmasi = null;
+
+        function konfirmasi(formId, pesan = 'Tindakan ini tidak bisa dibatalkan.') {
+            _formKonfirmasi = document.getElementById(formId);
+            document.getElementById('mk-pesan').textContent = pesan;
+            const modal = document.getElementById('modal-konfirmasi');
+            modal.style.display = 'flex';
+            requestAnimationFrame(() => requestAnimationFrame(() => modal.classList.add('in')));
+        }
+
+        function tutupKonfirmasi() {
+            const modal = document.getElementById('modal-konfirmasi');
+            modal.classList.remove('in');
+            modal.addEventListener('transitionend', () => {
+                modal.style.display = 'none';
+                _formKonfirmasi = null;
+            }, { once: true });
+        }
+
+        document.getElementById('mk-btn-hapus').addEventListener('click', () => {
+            if (_formKonfirmasi) _formKonfirmasi.submit();
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') tutupKonfirmasi();
+        });
+    </script>
 </body>
 
 </html>
